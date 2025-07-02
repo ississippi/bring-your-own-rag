@@ -1,0 +1,396 @@
+# Example 1: OpenAPI Specification (openapi_example.yaml)
+openapi: 3.0.3
+info:
+  title: Payment API
+  description: A comprehensive payment processing API for e-commerce applications
+  version: 2.1.0
+  contact:
+    name: API Support
+    email: api-support@paymentapi.com
+    url: https://paymentapi.com/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.paymentapi.com/v2
+    description: Production server
+  - url: https://sandbox.paymentapi.com/v2
+    description: Sandbox server for testing
+
+paths:
+  /payments:
+    post:
+      summary: Create a new payment
+      description: Initiates a new payment transaction
+      operationId: createPayment
+      tags:
+        - Payments
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '201':
+          description: Payment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Invalid request
+        '401':
+          description: Unauthorized
+
+  /payments/{paymentId}:
+    get:
+      summary: Get payment details
+      description: Retrieves details of a specific payment
+      operationId: getPayment
+      tags:
+        - Payments
+      parameters:
+        - name: paymentId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Unique payment identifier
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '404':
+          description: Payment not found
+
+components:
+  schemas:
+    PaymentRequest:
+      type: object
+      required:
+        - amount
+        - currency
+        - payment_method
+      properties:
+        amount:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: Payment amount
+        currency:
+          type: string
+          pattern: '^[A-Z]{3}$'
+          description: ISO 4217 currency code
+          example: USD
+        payment_method:
+          $ref: '#/components/schemas/PaymentMethod'
+        customer_id:
+          type: string
+          format: uuid
+          description: Customer identifier
+        description:
+          type: string
+          maxLength: 255
+          description: Payment description
+
+    PaymentMethod:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum: [card, bank_transfer, digital_wallet]
+          description: Payment method type
+        card:
+          $ref: '#/components/schemas/CardDetails'
+        bank_account:
+          $ref: '#/components/schemas/BankAccount'
+
+    CardDetails:
+      type: object
+      required:
+        - number
+        - expiry_month
+        - expiry_year
+        - cvv
+      properties:
+        number:
+          type: string
+          pattern: '^[0-9]{13,19}$'
+          description: Card number
+        expiry_month:
+          type: integer
+          minimum: 1
+          maximum: 12
+          description: Expiry month
+        expiry_year:
+          type: integer
+          minimum: 2024
+          description: Expiry year
+        cvv:
+          type: string
+          pattern: '^[0-9]{3,4}$'
+          description: Card verification value
+
+    PaymentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Payment ID
+        status:
+          type: string
+          enum: [pending, completed, failed, cancelled]
+          description: Payment status
+        amount:
+          type: number
+          format: decimal
+          description: Payment amount
+        currency:
+          type: string
+          description: Currency code
+        created_at:
+          type: string
+          format: date-time
+          description: Creation timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Last update timestamp
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication
+
+---
+
+# Example 2: Custom API Documentation (custom_api_docs.yaml)
+api_documentation:
+  overview: |
+    This is our internal User Management API that handles user registration,
+    authentication, profile management, and user permissions across our platform.
+    
+    The API follows RESTful principles and uses JSON for all request/response bodies.
+    All endpoints require authentication unless otherwise specified.
+
+  authentication:
+    type: Bearer Token
+    description: |
+      All authenticated endpoints require a Bearer token in the Authorization header.
+      Tokens are obtained through the /auth/login endpoint and expire after 24 hours.
+    
+    examples:
+      - |
+        curl -H "Authorization: Bearer YOUR_TOKEN_HERE" \
+             https://api.internal.com/v1/users
+      
+      - |
+        # Login to get token
+        curl -X POST https://api.internal.com/v1/auth/login \
+             -H "Content-Type: application/json" \
+             -d '{"email": "user@company.com", "password": "password123"}'
+
+  endpoints:
+    - name: User Registration
+      path: /v1/users/register
+      method: POST
+      description: Register a new user account
+      parameters:
+        - name: email
+          description: User's email address (must be unique)
+          required: true
+        - name: password
+          description: User's password (minimum 8 characters)
+          required: true
+        - name: first_name
+          description: User's first name
+          required: true
+        - name: last_name
+          description: User's last name
+          required: true
+      example_request: |
+        {
+          "email": "newuser@company.com",
+          "password": "securepassword123",
+          "first_name": "John",
+          "last_name": "Doe"
+        }
+      example_response: |
+        {
+          "id": "usr_12345",
+          "email": "newuser@company.com",
+          "first_name": "John",
+          "last_name": "Doe",
+          "status": "active",
+          "created_at": "2024-01-15T10:30:00Z"
+        }
+
+    - name: Get User Profile
+      path: /v1/users/{user_id}
+      method: GET
+      description: Retrieve detailed information about a specific user
+      parameters:
+        - name: user_id
+          description: Unique identifier for the user
+          required: true
+      example_request: |
+        GET /v1/users/usr_12345
+        Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      example_response: |
+        {
+          "id": "usr_12345",
+          "email": "user@company.com",
+          "first_name": "John",
+          "last_name": "Doe",
+          "department": "Engineering",
+          "role": "developer",
+          "last_login": "2024-01-15T09:45:00Z",
+          "permissions": ["read:projects", "write:code", "read:docs"]
+        }
+
+    - name: Update User
+      path: /v1/users/{user_id}
+      method: PUT
+      description: Update user information (requires admin permissions)
+      parameters:
+        - name: user_id
+          description: Unique identifier for the user
+          required: true
+        - name: first_name
+          description: Updated first name
+          required: false
+        - name: last_name
+          description: Updated last name
+          required: false
+        - name: department
+          description: User's department
+          required: false
+        - name: role
+          description: User's role in the organization
+          required: false
+      example_request: |
+        {
+          "first_name": "Jonathan",
+          "department": "Senior Engineering",
+          "role": "senior_developer"
+        }
+      example_response: |
+        {
+          "id": "usr_12345",
+          "email": "user@company.com",
+          "first_name": "Jonathan",
+          "last_name": "Doe",
+          "department": "Senior Engineering",
+          "role": "senior_developer",
+          "updated_at": "2024-01-15T11:00:00Z"
+        }
+
+  examples:
+    error_handling: |
+      # Error Response Format
+      All errors follow this structure:
+      {
+        "error": {
+          "code": "ERROR_CODE",
+          "message": "Human readable error message",
+          "details": {
+            "field": "Specific field that caused the error"
+          }
+        }
+      }
+      
+      # Common Error Codes:
+      - INVALID_EMAIL: Email format is invalid
+      - EMAIL_EXISTS: Email already registered
+      - WEAK_PASSWORD: Password doesn't meet requirements
+      - USER_NOT_FOUND: User ID doesn't exist
+      - PERMISSION_DENIED: Insufficient permissions
+
+    rate_limiting: |
+      # Rate Limiting
+      - 1000 requests per hour per user
+      - 100 requests per minute per user
+      - Rate limit headers included in responses:
+        - X-RateLimit-Limit: 1000
+        - X-RateLimit-Remaining: 999
+        - X-RateLimit-Reset: 1642249200
+
+---
+
+# Example 3: Generic Configuration with Documentation (config_docs.yaml)
+database_configuration:
+  description: Configuration for our internal database connections and settings
+  
+  primary_database:
+    type: PostgreSQL
+    host: db.internal.company.com
+    port: 5432
+    database: production_db
+    connection_pool:
+      min_connections: 5
+      max_connections: 20
+      timeout_seconds: 30
+    
+  cache_settings:
+    redis_host: cache.internal.company.com
+    redis_port: 6379
+    ttl_seconds: 3600
+    max_memory: "2gb"
+
+api_endpoints:
+  internal_services:
+    user_service:
+      base_url: https://users.internal.company.com
+      endpoints:
+        - path: /health
+          method: GET
+          description: Service health check
+        - path: /users
+          method: GET
+          description: List all users
+        - path: /users/{id}
+          method: GET
+          description: Get specific user
+    
+    notification_service:
+      base_url: https://notifications.internal.company.com
+      endpoints:
+        - path: /send
+          method: POST
+          description: Send notification to user
+        - path: /templates
+          method: GET
+          description: List notification templates
+
+monitoring:
+  metrics:
+    - name: request_count
+      description: Total number of API requests
+      type: counter
+    - name: response_time
+      description: Average response time in milliseconds
+      type: histogram
+    - name: error_rate
+      description: Percentage of requests that result in errors
+      type: gauge
+  
+  alerts:
+    - name: high_error_rate
+      condition: error_rate > 5%
+      description: Alert when error rate exceeds 5%
+    - name: slow_response
+      condition: response_time > 1000ms
+      description: Alert when average response time exceeds 1 second

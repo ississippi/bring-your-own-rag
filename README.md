@@ -34,8 +34,8 @@ A **Model Context Protocol (MCP) server** that enables AI coding assistants to a
 
 ```bash
 # Clone or download the project files
-git clone <your-repo> api-docs-rag
-cd api-docs-rag
+git clone <your-repo> bring-your-own-rag
+cd bring-your-own-rag
 
 # Run the setup script
 python setup.py

@@ -1,17 +1,17 @@
 {
-    "mcpServers": {
-      "bring-your-own-rag": {
-        "command": "python",
-        "args": [
-          "/path/to/your/mcp_server.py",
-          "--collection-name",
-          "my-api-docs",
-          "--chroma-path",
-          "./chroma_db"
-        ],
-        "env": {
-          "PYTHONPATH": "/path/to/your/project"
-        }
+  "mcpServers": {
+    "bring-your-own-rag": {
+      "command": "python",
+      "args": [
+        "/path/to/your/mcp_server.py",
+        "--collection-name",
+        "my-api-docs",
+        "--chroma-path",
+        "./chroma_db"
+      ],
+      "env": {
+        "PYTHONPATH": "/path/to/your/project"
       }
     }
   }
+}

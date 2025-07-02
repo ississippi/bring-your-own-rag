@@ -13,6 +13,11 @@ lxml>=4.9.3
 # Data handling
 pydantic>=2.4.0
 
+# YAML processing
+PyYAML>=6.0
+
+posthog>=3.0.0
+
 # Optional: for other vector stores (uncomment as needed)
 # qdrant-client>=1.7.0
 # pinecone-client>=2.2.4

@@ -1,0 +1,645 @@
+openapi: 3.0.3
+info:
+  title: ExoCoin Crypto Exchange API
+  description: |
+    ExoCoin is a fictional cryptocurrency exchange platform that provides trading services for various digital assets. 
+    This API allows users to get real-time pricing, place orders, manage existing orders, and view trading history.
+    
+    ## Authentication
+    All endpoints require API key authentication via the `X-API-Key` header.
+    
+    ## Rate Limiting
+    API calls are rate limited to 100 requests per minute per API key.
+  version: 1.0.0
+  contact:
+    name: ExoCoin API Support
+    email: api-support@exocoin.com
+    url: https://docs.exocoin.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: https://api.exocoin.com/v1
+    description: Production server
+  - url: https://api-staging.exocoin.com/v1
+    description: Staging server
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /price/{symbol}:
+    get:
+      summary: Get current price of a cryptocurrency
+      description: |
+        Retrieves the current market price and trading statistics for a specified cryptocurrency.
+        Returns real-time pricing data including current price, 24-hour change, volume, and market cap.
+      operationId: getCurrentPrice
+      tags:
+        - Market Data
+      parameters:
+        - name: symbol
+          in: path
+          required: true
+          description: The cryptocurrency symbol (e.g., BTC, ETH, ADA)
+          schema:
+            type: string
+            pattern: '^[A-Z]{2,10}$'
+            example: BTC
+        - name: currency
+          in: query
+          required: false
+          description: The fiat currency to display the price in
+          schema:
+            type: string
+            enum: [USD, EUR, GBP, JPY, CAD]
+            default: USD
+      responses:
+        '200':
+          description: Successfully retrieved cryptocurrency price
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PriceResponse'
+        '400':
+          description: Invalid cryptocurrency symbol or currency
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Cryptocurrency not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders:
+    post:
+      summary: Place a new cryptocurrency order
+      description: |
+        Creates a new buy or sell order for a specified cryptocurrency. 
+        Supports both market orders (executed immediately at current market price) 
+        and limit orders (executed when price reaches specified level).
+      operationId: placeOrder
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlaceOrderRequest'
+      responses:
+        '201':
+          description: Order successfully placed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid order parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Insufficient funds or trading privileges
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      summary: Get order history for authenticated user
+      description: |
+        Retrieves a paginated list of all orders (active and completed) for the authenticated user.
+        Results can be filtered by status, cryptocurrency symbol, and date range.
+      operationId: getOrderHistory
+      tags:
+        - Orders
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Filter orders by status
+          schema:
+            type: string
+            enum: [pending, filled, partially_filled, cancelled, expired]
+        - name: symbol
+          in: query
+          required: false
+          description: Filter orders by cryptocurrency symbol
+          schema:
+            type: string
+            pattern: '^[A-Z]{2,10}$'
+        - name: limit
+          in: query
+          required: false
+          description: Number of orders to return per page
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          required: false
+          description: Number of orders to skip for pagination
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+        - name: start_date
+          in: query
+          required: false
+          description: Filter orders created after this date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+        - name: end_date
+          in: query
+          required: false
+          description: Filter orders created before this date (ISO 8601 format)
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Successfully retrieved order history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderHistoryResponse'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /orders/{orderId}:
+    put:
+      summary: Update an existing order
+      description: |
+        Updates an existing order's quantity or price. Only pending and partially filled orders can be updated.
+        Market orders cannot be updated once placed.
+      operationId: updateOrder
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order to update
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateOrderRequest'
+      responses:
+        '200':
+          description: Order successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid order update parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Order cannot be updated (wrong status or not owned by user)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Cancel an existing order
+      description: |
+        Cancels an existing order. Only pending and partially filled orders can be cancelled.
+        Completed orders cannot be cancelled.
+      operationId: cancelOrder
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          description: The unique identifier of the order to cancel
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Order successfully cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid order ID format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Order cannot be cancelled (wrong status or not owned by user)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+
+  schemas:
+    PriceResponse:
+      type: object
+      required:
+        - symbol
+        - price
+        - currency
+        - timestamp
+      properties:
+        symbol:
+          type: string
+          description: The cryptocurrency symbol
+          example: BTC
+        price:
+          type: number
+          format: decimal
+          description: Current price of the cryptocurrency
+          example: 45234.56
+        currency:
+          type: string
+          description: The currency in which the price is displayed
+          example: USD
+        change24h:
+          type: number
+          format: decimal
+          description: Price change in the last 24 hours
+          example: 1234.56
+        changePercent24h:
+          type: number
+          format: decimal
+          description: Percentage price change in the last 24 hours
+          example: 2.81
+        volume24h:
+          type: number
+          format: decimal
+          description: Trading volume in the last 24 hours
+          example: 28450000000
+        marketCap:
+          type: number
+          format: decimal
+          description: Market capitalization
+          example: 850000000000
+        high24h:
+          type: number
+          format: decimal
+          description: Highest price in the last 24 hours
+          example: 46000.00
+        low24h:
+          type: number
+          format: decimal
+          description: Lowest price in the last 24 hours
+          example: 44500.00
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the price was last updated
+          example: "2024-01-15T10:30:00Z"
+
+    PlaceOrderRequest:
+      type: object
+      required:
+        - symbol
+        - side
+        - type
+        - quantity
+      properties:
+        symbol:
+          type: string
+          description: The cryptocurrency symbol to trade
+          pattern: '^[A-Z]{2,10}$'
+          example: BTC
+        side:
+          type: string
+          enum: [buy, sell]
+          description: Whether to buy or sell the cryptocurrency
+          example: buy
+        type:
+          type: string
+          enum: [market, limit, stop_loss, take_profit]
+          description: The type of order to place
+          example: limit
+        quantity:
+          type: number
+          format: decimal
+          minimum: 0.00000001
+          description: The amount of cryptocurrency to trade
+          example: 0.5
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: The price per unit (required for limit orders)
+          example: 45000.00
+        stopPrice:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: The stop price (required for stop_loss and take_profit orders)
+          example: 44000.00
+        timeInForce:
+          type: string
+          enum: [GTC, IOC, FOK]
+          default: GTC
+          description: |
+            Time in force for the order:
+            - GTC: Good Till Cancelled
+            - IOC: Immediate Or Cancel
+            - FOK: Fill Or Kill
+          example: GTC
+
+    UpdateOrderRequest:
+      type: object
+      properties:
+        quantity:
+          type: number
+          format: decimal
+          minimum: 0.00000001
+          description: New quantity for the order
+          example: 0.75
+        price:
+          type: number
+          format: decimal
+          minimum: 0.01
+          description: New price for the order (limit orders only)
+          example: 46000.00
+
+    OrderResponse:
+      type: object
+      required:
+        - orderId
+        - symbol
+        - side
+        - type
+        - quantity
+        - status
+        - createdAt
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Unique identifier for the order
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        symbol:
+          type: string
+          description: The cryptocurrency symbol
+          example: BTC
+        side:
+          type: string
+          enum: [buy, sell]
+          description: Buy or sell side
+          example: buy
+        type:
+          type: string
+          enum: [market, limit, stop_loss, take_profit]
+          description: Order type
+          example: limit
+        quantity:
+          type: number
+          format: decimal
+          description: Order quantity
+          example: 0.5
+        price:
+          type: number
+          format: decimal
+          description: Order price (null for market orders)
+          example: 45000.00
+        stopPrice:
+          type: number
+          format: decimal
+          description: Stop price (for stop orders)
+          example: 44000.00
+        filledQuantity:
+          type: number
+          format: decimal
+          description: Quantity that has been filled
+          example: 0.0
+        remainingQuantity:
+          type: number
+          format: decimal
+          description: Quantity remaining to be filled
+          example: 0.5
+        status:
+          type: string
+          enum: [pending, filled, partially_filled, cancelled, expired]
+          description: Current status of the order
+          example: pending
+        timeInForce:
+          type: string
+          enum: [GTC, IOC, FOK]
+          description: Time in force setting
+          example: GTC
+        averagePrice:
+          type: number
+          format: decimal
+          description: Average fill price (null if not filled)
+          example: null
+        fees:
+          type: number
+          format: decimal
+          description: Trading fees paid
+          example: 0.0
+        createdAt:
+          type: string
+          format: date-time
+          description: When the order was created
+          example: "2024-01-15T10:30:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the order was last updated
+          example: "2024-01-15T10:30:00Z"
+
+    OrderHistoryResponse:
+      type: object
+      required:
+        - orders
+        - pagination
+      properties:
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderResponse'
+          description: List of orders
+        pagination:
+          type: object
+          required:
+            - total
+            - limit
+            - offset
+          properties:
+            total:
+              type: integer
+              description: Total number of orders
+              example: 250
+            limit:
+              type: integer
+              description: Number of orders per page
+              example: 50
+            offset:
+              type: integer
+              description: Number of orders skipped
+              example: 0
+            hasNext:
+              type: boolean
+              description: Whether there are more orders available
+              example: true
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+        - timestamp
+      properties:
+        error:
+          type: string
+          description: Error code
+          example: INVALID_SYMBOL
+        message:
+          type: string
+          description: Human-readable error message
+          example: The specified cryptocurrency symbol is not supported
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
+        timestamp:
+          type: string
+          format: date-time
+          description: When the error occurred
+          example: "2024-01-15T10:30:00Z"
+        requestId:
+          type: string
+          description: Unique identifier for the request (for support purposes)
+          example: "req_123e4567e89b12d3a456426614174000"
+
+tags:
+  - name: Market Data
+    description: Operations related to cryptocurrency prices and market data
+  - name: Orders
+    description: Operations for managing cryptocurrency orders
