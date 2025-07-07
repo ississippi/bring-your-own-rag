@@ -1,0 +1,6 @@
+# Vector store dependencies
+chromadb>=0.4.25
+sentence-transformers>=2.2.2
+beautifulsoup4>=4.12.2
+# Core MCP dependencies
+mcp>=1.0.0

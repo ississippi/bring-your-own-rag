@@ -2,7 +2,7 @@
 mcp>=1.0.0
 
 # Vector store dependencies
-chromadb>=0.4.18
+chromadb>=0.4.25
 sentence-transformers>=2.2.2
 
 # Web scraping and processing

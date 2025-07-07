@@ -5,7 +5,7 @@ Script to ingest API documentation into containerized ChromaDB
 
 import asyncio
 import sys
-from mcp_server_container import ChromaContainerVectorStore
+from data.mcp_server_container import ChromaContainerVectorStore
 from mcp_server import DocumentLoader
 
 async def ingest_documentation():

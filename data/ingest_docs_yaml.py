@@ -151,7 +151,7 @@ class YAMLDocumentProcessor:
                         "endpoint_path": path,
                         "http_method": method.upper(),
                         "operation_id": operation.get('operationId'),
-                        "tags": operation.get('tags', []),
+                        "tags": ", ".join(operation.get('tags', [])),  # Convert list to string
                         "doc_index": doc_index
                     }
                 )
@@ -535,13 +535,25 @@ class YAMLDocumentProcessor:
         # Create unique ID
         chunk_id = hashlib.md5(f"{file_path}#{section_path}#{content[:100]}".encode()).hexdigest()
         
+        # Clean metadata to ensure all values are simple types
+        cleaned_metadata = {}
+        for key, value in metadata.items():
+            if isinstance(value, list):
+                cleaned_metadata[key] = ", ".join(str(item) for item in value)
+            elif isinstance(value, dict):
+                cleaned_metadata[key] = json.dumps(value)
+            elif value is None:
+                cleaned_metadata[key] = ""
+            else:
+                cleaned_metadata[key] = str(value)
+        
         # Enhance metadata
         enhanced_metadata = {
             "source_type": "yaml",
             "section_path": section_path,
             "chunk_type": chunk_type,
             "file_path": file_path,
-            **metadata
+            **cleaned_metadata
         }
         
         return DocumentChunk(

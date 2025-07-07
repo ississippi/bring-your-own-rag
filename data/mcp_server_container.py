@@ -6,6 +6,9 @@ import chromadb
 from chromadb.config import Settings
 
 # Import our existing classes
+import sys
+from pathlib import Path
+sys.path.append(str(Path(__file__).parent.parent))
 from mcp_server import DocumentLoader, APIDocumentationMCPServer, VectorStore, DocumentChunk
 from typing import Dict, List, Optional, Any
 
@@ -28,7 +31,8 @@ class ChromaContainerVectorStore(VectorStore):
             port=chroma_port,
             settings=Settings(
                 anonymized_telemetry=False,
-                allow_reset=True
+                allow_reset=True,
+                is_persistent=False
             )
         )
         
@@ -41,7 +45,10 @@ class ChromaContainerVectorStore(VectorStore):
                 )
             )
             logger.info(f"Connected to existing collection: {collection_name}")
-        except ValueError:
+            self.print_collection_sample(self.collection)
+        except Exception as e:
+            # Collection doesn't exist, create it
+            logger.info(f"Collection {collection_name} not found, creating new collection...")
             self.collection = self.client.create_collection(
                 name=collection_name,
                 embedding_function=chromadb.utils.embedding_functions.SentenceTransformerEmbeddingFunction(
@@ -49,6 +56,7 @@ class ChromaContainerVectorStore(VectorStore):
                 )
             )
             logger.info(f"Created new collection: {collection_name}")
+            self.print_collection_sample(self.collection)
     
     async def add_documents(self, chunks: List[DocumentChunk]) -> None:
         """Add document chunks to ChromaDB collection."""
@@ -117,6 +125,19 @@ class ChromaContainerVectorStore(VectorStore):
             "chroma_host": self.chroma_host,
             "chroma_port": self.chroma_port
         }
+    
+    async def print_collection_sample(collection, n=5):
+    # Query the first n documents (you can adjust the query as needed)
+        results = collection.query(
+            query_texts=[""],  # Empty string to get "closest" to nothing, i.e., just return docs
+            n_results=n,
+            include=["documents", "metadatas", "ids"]
+        )
+        for i in range(len(results["documents"][0])):
+            print(f"ID: {results['ids'][0][i]}")
+            print(f"Content: {results['documents'][0][i]}")
+            print(f"Metadata: {results['metadatas'][0][i]}")
+            print("-" * 40)
 
 
 async def main():

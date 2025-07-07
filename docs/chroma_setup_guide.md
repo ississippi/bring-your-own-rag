@@ -263,6 +263,19 @@ if __name__ == "__main__":
 
 ## 📚 Step 3: Ingest Test API Documentation
 
+Clear existing collection and ingest specific YAML files:
+```
+python ingest_docs_yaml.py --yaml-files example_files.yaml exocoin_openapi_spec.yaml --collection-name test-collection --chroma-host localhost --chroma-port 8000 --clear-collection
+```
+or ingest all YAMl files:
+```
+python ingest_docs_yaml.py --yaml-dir . --collection-name test-collection --chroma-host localhost --chroma-port 8000
+```
+Print a sample of the collection:
+```
+python print_collection_sample.py
+```
+
 ### Recommended Test URLs
 
 Here are some good public API documentation sources for testing:
