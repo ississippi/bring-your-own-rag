@@ -68,7 +68,7 @@ class YAMLDocumentProcessor:
             for doc_index, yaml_content in enumerate(documents):
                 if yaml_content is None:
                     continue
-                
+                # Get the YAML type: openapi, custom_api_docs, or generic.
                 yaml_type = self.detect_yaml_type(yaml_content)
                 logger.info(f"  Detected YAML type: {yaml_type}")
                 
