@@ -39,6 +39,9 @@ A **Model Context Protocol (MCP) server** that enables AI coding assistants to a
 git clone <your-repo> bring-your-own-rag
 cd bring-your-own-rag
 
+# Ensure you have Python 3.10+ installed
+python --version  # Should be 3.10 or higher
+
 # Start ChromaDB container
 cd data
 docker-compose up -d
@@ -61,6 +64,9 @@ python mcp_server_container.py --collection-name test-collection --chroma-host l
 # Clone the repository
 git clone <your-repo> bring-your-own-rag
 cd bring-your-own-rag
+
+# Ensure you have Python 3.10+ installed
+python --version  # Should be 3.10 or higher
 
 # Install dependencies
 pip install -r requirements.txt
