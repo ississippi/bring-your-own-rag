@@ -1,0 +1,8 @@
+# .github/CODEOWNERS
+# Global owners
+* @your-username @trusted-contributor1 @trusted-contributor2
+
+# Specific file/directory owners
+/docs/ @your-username
+/data/ @your-username @trusted-contributor1
+/mcp_server.py @your-username

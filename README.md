@@ -1,4 +1,4 @@
-# API Documentation RAG MCP Server
+# Bring Your Own RAG - API Documentation MCP Server
 
 A **Model Context Protocol (MCP) server** that enables AI coding assistants to access proprietary API documentation through semantic search. This project implements "Bring Your Own RAG" for coding assistants, allowing developers to get contextual help from their own API documentation while coding.
 
@@ -8,6 +8,8 @@ A **Model Context Protocol (MCP) server** that enables AI coding assistants to a
 - **Multi-IDE Support**: Works with Cursor, VS Code, and any MCP-compatible client
 - **Vector Store Integration**: Currently supports Chroma (extensible to others)
 - **Web Documentation Loading**: Automatically crawls and indexes documentation from URLs
+- **YAML Documentation Support**: Load OpenAPI specs and custom API documentation from YAML files
+- **Containerized Deployment**: Docker support for production deployments
 - **Real-time Integration**: Live access to documentation while coding
 - **Extensible Architecture**: Easy to add support for other vector stores
 
@@ -24,92 +26,58 @@ A **Model Context Protocol (MCP) server** that enables AI coding assistants to a
                        ┌─────────────────┐
                        │ Documentation   │
                        │   Loader        │
-                       │ (Web Scraper)   │
+                       │ (Web + YAML)    │
                        └─────────────────┘
 ```
 
 ## 🚀 Quick Start
 
-### 1. Installation
+### Option 1: Containerized Setup (Recommended)
 
 ```bash
-# Clone or download the project files
+# Clone the repository
+git clone <your-repo> bring-your-own-rag
+cd bring-your-own-rag
+
+# Start ChromaDB container
+cd data
+docker-compose up -d
+
+# Install Python dependencies
+cd ..
+pip install -r requirements.txt
+
+# Load sample documentation
+cd data
+python ingest_docs_yaml.py --yaml-files example_files.yaml exocoin_openapi_spec.yaml --collection-name test-collection --chroma-host localhost --chroma-port 8000 --clear-collection
+
+# Start the MCP server
+python mcp_server_container.py --collection-name test-collection --chroma-host localhost --chroma-port 8000
+```
+
+### Option 2: Local Setup
+
+```bash
+# Clone the repository
+git clone <your-repo> bring-your-own-rag
+cd bring-your-own-rag
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Start with local ChromaDB
+python mcp_server.py --collection-name my-api-docs --chroma-path ./chroma_db
+```
+
+### Option 3: Using the Setup Script
+
+```bash
+# Clone the repository
 git clone <your-repo> bring-your-own-rag
 cd bring-your-own-rag
 
 # Run the setup script
 python setup.py
-```
-
-The setup script will:
-- Install all dependencies
-- Create IDE configuration files
-- Test the server
-- Optionally load test documentation
-
-### 2. Manual Setup (Alternative)
-
-```bash
-# Install dependencies
-pip install -r requirements.txt
-
-# Test the server
-python mcp_server.py --help
-```
-
-### 3. Configure Your IDE
-
-#### For Cursor
-
-Create `.cursor/mcp.json` in your project:
-
-```json
-{
-  "mcpServers": {
-    "api-docs-rag": {
-      "command": "python",
-      "args": [
-        "/path/to/your/mcp_server.py",
-        "--collection-name", "my-api-docs",
-        "--chroma-path", "./chroma_db"
-      ]
-    }
-  }
-}
-```
-
-#### For VS Code
-
-Create `.vscode/mcp.json` in your project:
-
-```json
-{
-  "mcpServers": {
-    "api-docs-rag": {
-      "command": "python",
-      "args": [
-        "/path/to/your/mcp_server.py",
-        "--collection-name", "my-api-docs",
-        "--chroma-path", "./chroma_db"
-      ]
-    }
-  }
-}
-```
-
-### 4. Load Documentation
-
-You can load documentation in several ways:
-
-#### Option A: Command Line
-```bash
-python mcp_server.py --load-url https://api.example.com/docs --collection-name my-api
-```
-
-#### Option B: Through the AI Assistant
-Once configured, ask your AI assistant:
-```
-"Load documentation from https://api.example.com/docs"
 ```
 
 ## 🔧 Usage
@@ -121,6 +89,58 @@ The MCP server provides three main tools:
 1. **`search_api_docs`** - Search through documentation
 2. **`load_documentation`** - Load new documentation from URLs
 3. **`get_collection_info`** - Get information about your documentation collection
+
+### Loading Documentation
+
+#### From YAML Files (Recommended)
+
+```bash
+# Load specific YAML files
+cd data
+python ingest_docs_yaml.py --yaml-files your_api_spec.yaml --collection-name my-api-docs --chroma-host localhost --chroma-port 8000
+
+# Load all YAML files in a directory
+python ingest_docs_yaml.py --yaml-dir . --collection-name my-api-docs --chroma-host localhost --chroma-port 8000
+
+# Clear existing collection and load fresh data
+python ingest_docs_yaml.py --yaml-files your_files.yaml --collection-name my-api-docs --chroma-host localhost --chroma-port 8000 --clear-collection
+```
+
+#### From URLs
+
+```bash
+# Load documentation from a URL
+python mcp_server.py --load-url https://api.example.com/docs --collection-name my-api-docs
+```
+
+### Managing Collections
+
+```bash
+# View collection contents
+cd data
+python collection_manager.py --action view
+
+# View collection statistics
+python collection_manager.py --action stats
+
+# List all collections
+python collection_manager.py --action list
+
+# Add sample data for testing
+python collection_manager.py --action add-sample --sample-type default
+
+# Add API-specific sample data
+python collection_manager.py --action add-sample --sample-type api
+
+# Search the collection
+python collection_manager.py --action search --query "authentication"
+
+# Export collection to file
+python collection_manager.py --action export --output my_collection.json --format json
+
+# View with full content
+python collection_manager.py --action view --full-content --n 3
+```
 
 ### Example Interactions
 
@@ -147,21 +167,35 @@ The MCP server provides three main tools:
 
 ### Command Line Usage
 
+#### Containerized Mode
 ```bash
-# Start server with specific collection
-python mcp_server.py --collection-name stripe-api --chroma-path ./stripe_docs
+# Start server with containerized ChromaDB
+python data/mcp_server_container.py --collection-name my-api-docs --chroma-host localhost --chroma-port 8000
 
 # Load documentation on startup
-python mcp_server.py --load-url https://stripe.com/docs/api --collection-name stripe-api
+python data/mcp_server_container.py --collection-name my-api-docs --chroma-host localhost --chroma-port 8000 --load-url https://api.example.com/docs
+```
 
-# Use custom Chroma path
-python mcp_server.py --chroma-path /custom/path/to/vector/db
+#### Local Mode
+```bash
+# Start server with local ChromaDB
+python mcp_server.py --collection-name my-api-docs --chroma-path ./chroma_db
+
+# Load documentation on startup
+python mcp_server.py --load-url https://api.example.com/docs --collection-name my-api-docs
 ```
 
 ## 🛠️ Configuration Options
 
 ### Command Line Arguments
 
+#### Containerized Mode (`mcp_server_container.py`)
+- `--collection-name`: Name of the vector store collection (default: "api-docs")
+- `--chroma-host`: ChromaDB container host (default: "localhost")
+- `--chroma-port`: ChromaDB container port (default: 8000)
+- `--load-url`: URL to load documentation from on startup
+
+#### Local Mode (`mcp_server.py`)
 - `--collection-name`: Name of the vector store collection (default: "api-docs")
 - `--chroma-path`: Path to Chroma database directory (default: "./chroma_db")
 - `--load-url`: URL to load documentation from on startup
@@ -171,24 +205,41 @@ python mcp_server.py --chroma-path /custom/path/to/vector/db
 You can also configure via environment variables:
 
 ```bash
-export CHROMA_PATH="/path/to/chroma/db"
+export CHROMA_HOST="localhost"
+export CHROMA_PORT="8000"
 export COLLECTION_NAME="my-api-docs"
 ```
 
 ## 📁 Project Structure
 
 ```
-api-docs-rag/
-├── mcp_server.py          # Main MCP server implementation
-├── requirements.txt       # Python dependencies
-├── setup.py              # Setup and configuration script
-├── README.md             # This file
-├── .cursor/              # Cursor configuration
+bring-your-own-rag/
+├── mcp_server.py              # Main MCP server (local mode)
+├── requirements.txt           # Python dependencies
+├── setup.py                  # Setup and configuration script
+├── test_mcp_server.py        # Test suite
+├── vendor_setup_example.py   # Vendor setup example
+├── README.md                 # This file
+├── .cursor/                  # Cursor configuration
 │   └── mcp.json
-├── .vscode/              # VS Code configuration
+├── .vscode/                  # VS Code configuration
 │   └── mcp.json
-└── chroma_db/            # Vector database (created automatically)
-    └── ...
+├── docs/                     # Documentation
+│   ├── chroma_setup_guide.md
+│   ├── yaml_ingestion_guide.md
+│   ├── mcp_communication_protocols.md
+│   ├── deployment_models_guide.md
+│   └── security_model_guide.md
+└── data/                     # Data and containerized setup
+    ├── mcp_server_container.py    # Containerized MCP server
+    ├── ingest_docs_yaml.py        # YAML documentation loader
+    ├── collection_manager.py      # Collection management tools
+    ├── print_collection_sample.py # Simple collection viewer
+    ├── docker-compose.yml         # ChromaDB container setup
+    ├── example_files.yaml         # Sample API documentation
+    ├── exocoin_openapi_spec.yaml  # Sample OpenAPI spec
+    ├── chroma_venv/              # Virtual environment
+    └── chroma_data/              # ChromaDB data directory
 ```
 
 ## 🔌 Extending to Other Vector Stores
@@ -231,11 +282,12 @@ vector_store = MyVectorStore(config_params)
 ### Test with Sample Documentation
 
 ```bash
-# Test with Python documentation
-python mcp_server.py --load-url https://docs.python.org/3/library/requests.html
+# Test with provided YAML files
+cd data
+python ingest_docs_yaml.py --yaml-files example_files.yaml exocoin_openapi_spec.yaml --collection-name test-collection --chroma-host localhost --chroma-port 8000
 
-# Test with a REST API documentation
-python mcp_server.py --load-url https://jsonplaceholder.typicode.com/guide/
+# Test with web documentation
+python mcp_server.py --load-url https://docs.python.org/3/library/requests.html
 ```
 
 ### Verify Setup
@@ -255,20 +307,31 @@ python mcp_server.py --load-url https://jsonplaceholder.typicode.com/guide/
    pip install -r requirements.txt
    ```
 
-2. **MCP server not appearing in IDE**
+2. **ChromaDB connection issues**
+   ```bash
+   # Check if ChromaDB container is running
+   cd data
+   docker-compose ps
+   
+   # Restart ChromaDB
+   docker-compose restart
+   ```
+
+3. **MCP server not appearing in IDE**
    - Restart your IDE after configuration
    - Check that paths in mcp.json are absolute
    - Verify Python path is correct
 
-3. **No search results**
+4. **No search results**
    - Ensure documentation is loaded: use `get_collection_info` tool
    - Try broader search terms
-   - Check that the URL content was successfully scraped
+   - Check that the YAML files were successfully processed
 
-4. **Server startup issues**
+5. **Server startup issues**
    ```bash
    # Test server directly
    python mcp_server.py --help
+   python data/mcp_server_container.py --help
    
    # Check logs
    python mcp_server.py --collection-name test 2>&1 | tee server.log
@@ -279,9 +342,17 @@ python mcp_server.py --load-url https://jsonplaceholder.typicode.com/guide/
 Enable verbose logging:
 
 ```python
-# Add to mcp_server.py
+# Add to mcp_server.py or mcp_server_container.py
 logging.basicConfig(level=logging.DEBUG)
 ```
+
+## 📚 Documentation
+
+- [Chroma Setup Guide](docs/chroma_setup_guide.md) - Detailed ChromaDB setup instructions
+- [YAML Ingestion Guide](docs/yaml_ingestion_guide.md) - How to load YAML documentation
+- [MCP Communication Protocols](docs/mcp_communication_protocols.md) - Protocol details
+- [Deployment Models Guide](docs/deployment_models_guide.md) - Deployment options
+- [Security Model Guide](docs/security_model_guide.md) - Security considerations
 
 ## 🤝 Contributing
 
@@ -292,6 +363,7 @@ Contributions are welcome! Areas for improvement:
 - Support for different documentation formats (OpenAPI, etc.)
 - Performance optimizations
 - Better error handling
+- Additional documentation loaders
 
 ## 📝 License
 
@@ -303,6 +375,7 @@ This project is open source. See LICENSE file for details.
 - Vector embeddings powered by [sentence-transformers](https://www.sbert.net/)
 - Vector storage via [ChromaDB](https://www.trychroma.com/)
 - Web scraping with [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/)
+- Container orchestration with [Docker Compose](https://docs.docker.com/compose/)
 
 ---
 
