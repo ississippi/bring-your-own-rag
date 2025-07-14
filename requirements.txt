@@ -17,7 +17,7 @@ pydantic>=2.4.0,<3.0.0
 PyYAML>=6.0,<7.0.0
 
 # Analytics
-posthog>=3.0.0,<4.0.0
+posthog>=3.0.0,<7.0.0
 
 # Optional: for other vector stores (uncomment as needed)
 # qdrant-client>=1.7.0
