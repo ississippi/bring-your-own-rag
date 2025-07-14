@@ -8,7 +8,7 @@ sentence-transformers>=2.2.2,<3.0.0
 # Web scraping and processing
 requests>=2.31.0,<3.0.0
 beautifulsoup4>=4.12.2,<5.0.0
-lxml>=4.9.3,<5.0.0
+lxml>=4.9.3,<7.0.0
 
 # Data handling
 pydantic>=2.4.0,<3.0.0
